@@ -81,7 +81,7 @@ export default function Main() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`http://localhost:4000/form/post`);
+        const response = await axios.get(`http://localhost:4000/form/get`);
         setData(response.data.data); // set the fetched data to state
 
       } catch (error) {
