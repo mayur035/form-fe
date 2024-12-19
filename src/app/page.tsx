@@ -59,7 +59,7 @@ export default function Main() {
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
     } else {
-      await axios.post(`http://localhost:4000/form/post`, formData).then(() => {
+      await axios.post(`/api/form/post`, formData).then(() => {
         console.log("Form data submitted:", formData);
         console.log('Filled Successfully!');
         setFormData({
@@ -81,7 +81,7 @@ export default function Main() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`http://localhost:4000/form/get`);
+        const response = await axios.get(`/api/form/get`);
         setData(response.data.data); // set the fetched data to state
 
       } catch (error) {
