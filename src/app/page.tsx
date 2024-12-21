@@ -1,10 +1,10 @@
-"use client"
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useEffect, useState } from 'react';
+"use client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 
 interface FormData {
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   address: string;
   phone: string;
   email: string;
@@ -12,17 +12,17 @@ interface FormData {
 
 const Main = () => {
   const [formData, setFormData] = useState<FormData>({
-    firstName: '',
-    lastName: '',
-    address: '',
-    phone: '',
-    email: ''
+    first_name: "",
+    last_name: "",
+    address: "",
+    phone: "",
+    email: "",
   });
 
   const [submissions, setSubmissions] = useState<FormData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [phoneError, setPhoneError] = useState('');
+  const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -30,61 +30,52 @@ const Main = () => {
 
   const validatePhoneNumber = (phone: string): string => {
     // Remove any non-digit characters for validation
-    const digits = phone.replace(/\D/g, '');
+    const digits = phone.replace(/\D/g, "");
 
     if (!digits) {
-      return 'Phone number is required';
+      return "Phone number is required";
     }
 
     // Check for exactly 10 digits
     if (digits.length !== 10) {
-      return 'Phone number must be 10 digits';
+      return "Phone number must be 10 digits";
     }
 
     // Check if starts with valid Indian mobile prefixes (6, 7, 8, or 9)
-    if (!['6', '7', '8', '9'].includes(digits[0])) {
-      return 'Invalid Indian mobile number. Must start with 6, 7, 8, or 9';
+    if (!["6", "7", "8", "9"].includes(digits[0])) {
+      return "Invalid Indian mobile number. Must start with 6, 7, 8, or 9";
     }
 
-    return '';
-  };
-
-  const formatPhoneNumber = (value: string): string => {
-    // Remove any non-digit characters
-    const digits = value.replace(/\D/g, '');
-
-    if (digits.length === 0) return '';
-    if (digits.length <= 5) return digits;
-    if (digits.length <= 10)
-      return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-    return digits.slice(0, 10); // Limit to 10 digits
+    return "";
   };
 
   const fetchData = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/get`);
       const data = await response.json();
-      setSubmissions(data);
+      setSubmissions(data.data);
     } catch (err) {
-      console.log(err)
-      setError('Failed to fetch data');
+      console.log(err);
+      setError("Failed to fetch data");
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
 
-    if (name === 'phone') {
-      const formattedPhone = formatPhoneNumber(value);
-      setFormData(prev => ({ ...prev, phone: formattedPhone }));
-      // Only show error if user has started typing
-      if (value) {
-        setPhoneError(validatePhoneNumber(formattedPhone));
+    if (name === "phone") {
+      const digitsOnly = value.replace(/\D/g, ""); // Strip non-digit characters
+      setFormData((prev) => ({ ...prev, phone: digitsOnly }));
+
+      if (digitsOnly) {
+        setPhoneError(validatePhoneNumber(digitsOnly));
       } else {
-        setPhoneError('');
+        setPhoneError("");
       }
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -98,38 +89,35 @@ const Main = () => {
       return;
     }
 
-    // Clear any previous errors
-    setError('');
-    setPhoneError('');
+    setError("");
+    setPhoneError("");
     setLoading(true);
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/post`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit form');
+        throw new Error("Failed to submit form");
       }
 
-      // Clear form only after successful submission
       setFormData({
-        firstName: '',
-        lastName: '',
-        address: '',
-        phone: '',
-        email: ''
+        first_name: "",
+        last_name: "",
+        address: "",
+        phone: "",
+        email: "",
       });
 
-      // Refresh data
       await fetchData();
     } catch (err) {
-      console.log(err)
-      setError('Failed to submit form');
+      console.log(err);
+      setError("Failed to submit form");
     } finally {
       setLoading(false);
     }
@@ -152,7 +140,7 @@ const Main = () => {
                   type="text"
                   id="firstName"
                   name="firstName"
-                  value={formData.firstName}
+                  value={formData.first_name}
                   onChange={handleChange}
                   required
                   className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
@@ -167,7 +155,7 @@ const Main = () => {
                   type="text"
                   id="lastName"
                   name="lastName"
-                  value={formData.lastName}
+                  value={formData.last_name}
                   onChange={handleChange}
                   required
                   className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
@@ -202,9 +190,8 @@ const Main = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  placeholder="98765-43210"
-                  maxLength={11} // 10 digits + 1 hyphen
-                  className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${phoneError && formData.phone ? 'border-red-500' : ''
+                  maxLength={10} // Limit input to 10 characters
+                  className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${phoneError && formData.phone ? "border-red-500" : ""
                     }`}
                 />
                 {phoneError && formData.phone && (
@@ -228,16 +215,14 @@ const Main = () => {
               </div>
             </div>
 
-            {error && (
-              <p className="text-red-500 text-sm">{error}</p>
-            )}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <button
               type="submit"
               disabled={loading || !!phoneError}
               className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Submitting...' : 'Submit'}
+              {loading ? "Submitting..." : "Submit"}
             </button>
           </form>
         </CardContent>
@@ -259,16 +244,17 @@ const Main = () => {
                 </tr>
               </thead>
               <tbody>
-                {submissions.map((submission, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="p-2">
-                      {submission.firstName} {submission.lastName}
-                    </td>
-                    <td className="p-2">{submission.address}</td>
-                    <td className="p-2">{submission.phone}</td>
-                    <td className="p-2">{submission.email}</td>
-                  </tr>
-                ))}
+                {submissions.length > 0 &&
+                  submissions.map((submission, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="p-2">
+                        {submission.first_name} {submission.last_name}
+                      </td>
+                      <td className="p-2">{submission.address}</td>
+                      <td className="p-2">{submission.phone}</td>
+                      <td className="p-2">{submission.email}</td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
