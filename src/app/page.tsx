@@ -1,232 +1,280 @@
 "use client"
-import axios from 'axios';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import 'react-toastify/dist/ReactToastify.css';
-import { ToastFunc } from './utils/ToastFun';
-export interface FormData {
-  fname: string;
-  lname: string;
+
+interface FormData {
+  firstName: string;
+  lastName: string;
   address: string;
   phone: string;
   email: string;
 }
 
-export default function Main() {
+const Main = () => {
   const [formData, setFormData] = useState<FormData>({
-    fname: "",
-    lname: "",
-    address: "",
-    phone: "",
-    email: "",
+    firstName: '',
+    lastName: '',
+    address: '',
+    phone: '',
+    email: ''
   });
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true); // to track loading state
-  const [errors, setErrors] = useState<Partial<FormData>>({});
 
+  const [submissions, setSubmissions] = useState<FormData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const validate = (): Partial<FormData> => {
-    const newErrors: Partial<FormData> = {};
-    if (!formData.fname) newErrors.fname = "First name is required.";
-    if (!formData.lname) newErrors.lname = "Last name is required.";
-    if (!formData.address) newErrors.address = "Address is required.";
-    if (!formData.phone) {
-      newErrors.phone = "Phone number is required.";
-    } else if (!/^[0-9]{10}$/.test(formData.phone)) {
-      newErrors.phone = "Phone number must be 10 digits.";
-    }
-    if (!formData.email) {
-      newErrors.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format.";
-    }
-    return newErrors;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-    } else {
-      await axios.post(`http://localhost:4000/form/post`, formData).then(() => {
-        console.log("Form data submitted:", formData);
-        console.log('Filled Successfully!');
-        setFormData({
-          fname: "",
-          lname: "",
-          address: "",
-          phone: "",
-          email: "",
-        })
-        ToastFunc('Form data submitted', 'success')
-      }).catch((e) => {
-        console.log(e)
-        ToastFunc('Error', 'error')
-      })
-      setErrors({});
-      // Handle successful form submission (e.g., send to an API or clear the form)
-    }
-  };
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`http://localhost:4000/form/get`);
-        setData(response.data.data); // set the fetched data to state
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false); // set loading to false after the request is finished
-      }
-    };
-
     fetchData();
-  }, [handleSubmit]);
+  }, []);
+
+  const validatePhoneNumber = (phone: string): string => {
+    // Remove any non-digit characters for validation
+    const digits = phone.replace(/\D/g, '');
+    
+    if (!digits) {
+      return 'Phone number is required';
+    }
+
+    // Check for exactly 10 digits
+    if (digits.length !== 10) {
+      return 'Phone number must be 10 digits';
+    }
+
+    // Check if starts with valid Indian mobile prefixes (6, 7, 8, or 9)
+    if (!['6', '7', '8', '9'].includes(digits[0])) {
+      return 'Invalid Indian mobile number. Must start with 6, 7, 8, or 9';
+    }
+
+    return '';
+  };
+
+  const formatPhoneNumber = (value: string): string => {
+    // Remove any non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    if (digits.length === 0) return '';
+    if (digits.length <= 5) return digits;
+    if (digits.length <= 10) 
+      return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    return digits.slice(0, 10); // Limit to 10 digits
+  };
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch('/api/get');
+      const data = await response.json();
+      setSubmissions(data);
+    } catch (err) {
+      setError('Failed to fetch data');
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'phone') {
+      const formattedPhone = formatPhoneNumber(value);
+      setFormData(prev => ({ ...prev, phone: formattedPhone }));
+      // Only show error if user has started typing
+      if (value) {
+        setPhoneError(validatePhoneNumber(formattedPhone));
+      } else {
+        setPhoneError('');
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    // Validate phone before submission
+    const phoneValidationError = validatePhoneNumber(formData.phone);
+    if (phoneValidationError) {
+      setPhoneError(phoneValidationError);
+      return;
+    }
+
+    // Clear any previous errors
+    setError('');
+    setPhoneError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit form');
+      }
+
+      // Clear form only after successful submission
+      setFormData({
+        firstName: '',
+        lastName: '',
+        address: '',
+        phone: '',
+        email: ''
+      });
+
+      // Refresh data
+      await fetchData();
+    } catch (err) {
+      setError('Failed to submit form');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <>
-      <form onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="fname" className="block mb-1 font-medium">
-            First Name
-          </label>
-          <span>
-            <input
-              type="text"
-              id="fname"
-              name="fname"
-              value={formData.fname}
-              onChange={handleChange}
-              className="w-full border px-2 py-1 rounded"
-              placeholder="First name"
-            />
-            {errors.fname && (
-              <span className="text-red-500 text-sm">{errors.fname}</span>
-            )}
-          </span>
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="lname" className="block mb-1 font-medium">
-            Last Name
-          </label>
-          <span>
-            <input
-              type="text"
-              id="lname"
-              name="lname"
-              value={formData.lname}
-              onChange={handleChange}
-              className="w-full border px-2 py-1 rounded"
-              placeholder="Last name"
-            />
-            {errors.lname && (
-              <span className="text-red-500 text-sm">{errors.lname}</span>
-            )}
-          </span>
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="address" className="block mb-1 font-medium">
-            Address
-          </label>
-          <span>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full border px-2 py-1 rounded"
-              placeholder="Address"
-              rows={3}
-            />
-            {errors.address && (
-              <span className="text-red-500 text-sm">{errors.address}</span>
-            )}
-          </span>
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="phone" className="block mb-1 font-medium">
-            Phone
-          </label>
-          <span>
-            <input
-              type="text"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full border px-2 py-1 rounded"
-              placeholder="Phone"
-            />
-            {errors.phone && (
-              <span className="text-red-500 text-sm">{errors.phone}</span>
-            )}
-          </span>
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="email" className="block mb-1 font-medium">
-            Email
-          </label>
-          <span>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full border px-2 py-1 rounded"
-              placeholder="Email"
-            />
-            {errors.email && (
-              <span className="text-red-500 text-sm">{errors.email}</span>
-            )}
-          </span>
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-        >
-          Submit
-        </button>
-      </form>
-      <div className="grid place-content-center p-4">
-        {loading ? (
-          <p className="text-gray-700">Loading...</p>
-        ) : data.length === 0 ? (
-          <p className="text-gray-700">No data submitted yet.</p>
-        ) : (
-          <div className="flex flex-wrap gap-4">
-            {data && data.length > 0 && data.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-lg shadow-md p-4"
-              >
-                <h3 className="text-xl font-semibold text-gray-800">
-                  {item.first_name} {item.last_name}
-                </h3>
-                <p className="text-gray-600">Email: {item.email}</p>
-                <p className="text-gray-600">Phone: {item.phone}</p>
-                <p className="text-gray-600">Address: {item.address}</p>
+    <div className="max-w-4xl mx-auto p-4 space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact Information Form</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="block text-sm font-medium">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-            ))}
+
+              <div className="space-y-2">
+                <label htmlFor="lastName" className="block text-sm font-medium">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="address" className="block text-sm font-medium">
+                Address
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+                rows={3}
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="phone" className="block text-sm font-medium">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  placeholder="98765-43210"
+                  maxLength={11} // 10 digits + 1 hyphen
+                  className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
+                    phoneError && formData.phone ? 'border-red-500' : ''
+                  }`}
+                />
+                {phoneError && formData.phone && (
+                  <p className="text-red-500 text-sm mt-1">{phoneError}</p>
+                )}  
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="email" className="block text-sm font-medium">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-red-500 text-sm">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !!phoneError}
+              className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Submitting...' : 'Submit'}
+            </button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Submitted Entries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-2 text-left">Name</th>
+                  <th className="p-2 text-left">Address</th>
+                  <th className="p-2 text-left">Phone</th>
+                  <th className="p-2 text-left">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {submissions.map((submission, index) => (
+                  <tr key={index} className="border-b">
+                    <td className="p-2">
+                      {submission.firstName} {submission.lastName}
+                    </td>
+                    <td className="p-2">{submission.address}</td>
+                    <td className="p-2">{submission.phone}</td>
+                    <td className="p-2">{submission.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
-    </>
+        </CardContent>
+      </Card>
+    </div>
   );
-}
+};
+
+export default Main;
