@@ -66,6 +66,7 @@ const Main = () => {
       const data = await response.json();
       setSubmissions(data);
     } catch (err) {
+      console.log(err)
       setError('Failed to fetch data');
     }
   };
@@ -127,6 +128,7 @@ const Main = () => {
       // Refresh data
       await fetchData();
     } catch (err) {
+      console.log(err)
       setError('Failed to submit form');
     } finally {
       setLoading(false);
