@@ -31,7 +31,7 @@ const Main = () => {
   const validatePhoneNumber = (phone: string): string => {
     // Remove any non-digit characters for validation
     const digits = phone.replace(/\D/g, '');
-    
+
     if (!digits) {
       return 'Phone number is required';
     }
@@ -52,17 +52,17 @@ const Main = () => {
   const formatPhoneNumber = (value: string): string => {
     // Remove any non-digit characters
     const digits = value.replace(/\D/g, '');
-    
+
     if (digits.length === 0) return '';
     if (digits.length <= 5) return digits;
-    if (digits.length <= 10) 
+    if (digits.length <= 10)
       return `${digits.slice(0, 5)}-${digits.slice(5)}`;
     return digits.slice(0, 10); // Limit to 10 digits
   };
 
   const fetchData = async () => {
     try {
-      const response = await fetch('/api/get');
+      const response = await fetch(`${process.env.API_BASE_URL}/get`);
       const data = await response.json();
       setSubmissions(data);
     } catch (err) {
@@ -72,7 +72,7 @@ const Main = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'phone') {
       const formattedPhone = formatPhoneNumber(value);
       setFormData(prev => ({ ...prev, phone: formattedPhone }));
@@ -89,7 +89,7 @@ const Main = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Validate phone before submission
     const phoneValidationError = validatePhoneNumber(formData.phone);
     if (phoneValidationError) {
@@ -103,7 +103,7 @@ const Main = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/post', {
+      const response = await fetch(`${process.env.API_BASE_URL}/post`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,13 +202,12 @@ const Main = () => {
                   required
                   placeholder="98765-43210"
                   maxLength={11} // 10 digits + 1 hyphen
-                  className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    phoneError && formData.phone ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${phoneError && formData.phone ? 'border-red-500' : ''
+                    }`}
                 />
                 {phoneError && formData.phone && (
                   <p className="text-red-500 text-sm mt-1">{phoneError}</p>
-                )}  
+                )}
               </div>
 
               <div className="space-y-2">
