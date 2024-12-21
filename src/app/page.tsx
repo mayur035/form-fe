@@ -62,7 +62,7 @@ const Main = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch(`${process.env.API_BASE_URL}/get`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/get`);
       const data = await response.json();
       setSubmissions(data);
     } catch (err) {
@@ -104,7 +104,7 @@ const Main = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.API_BASE_URL}/post`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/post`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
